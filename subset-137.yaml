@@ -118,23 +118,23 @@ lib:
       base:
         cab: cubical
         params:
-          data/ms: '{recipe.ms}'
-          data/time-chunk: 4
-          data/freq-chunk: 0 
-          dist/ncpu: 64
-          model/list: MODEL_DATA
-          sel/chan: "{recipe.chan0}:{recipe.chan1}" 
-          out/dir: '{recipe.dir_out}/cc-{info.label}'
-          out/column: SELFCAL{info.suffix}_DATA
-          flags/auto-init: None
-          flags/apply: FLAG
-          flags/save: None
-          flags/save-legacy: apply
-          madmax/enable: true
-          madmax/residuals: true
-          madmax/threshold: 6
-          madmax/global-threshold: 7
-          log/verbose: solver=2
+          data.ms: '{recipe.ms}'
+          data.time-chunk: 4
+          data.freq-chunk: 0 
+          dist.ncpu: 64
+          model.list: MODEL_DATA
+          sel.chan: "{recipe.chan0}:{recipe.chan1}" 
+          out.dir: '{recipe.dir_out}.cc-{info.label}'
+          out.column: SELFCAL{info.suffix}_DATA
+          flags.auto-init: None
+          flags.apply: FLAG
+          flags.save: None
+          flags.save-legacy: apply
+          madmax.enable: true
+          madmax.residuals: true
+          madmax.threshold: 6
+          madmax.global-threshold: 7
+          log.verbose: solver=2
 
   recipes:
     mask_series:
@@ -212,7 +212,7 @@ eso137:
     dir_out: 
       dtype: str
     ms:
-      aliases: [(quartical).input_ms/path]
+      aliases: [(quartical).input_ms.path]
     multiscale-scales: 
       dtype: List[int]
       default: [0,6,12,18,24,36,48,72]
@@ -273,8 +273,8 @@ eso137:
       info: invokes quartical on a single MS
       _use: lib.steps.quartical.base
       params:
-        input_model/recipe: MODEL_DATA
-        output/columns: =LIST('SELFCAL{info.suffix}_DATA')
+        input_model.recipe: MODEL_DATA
+        output.columns: =LIST('SELFCAL{info.suffix}_DATA')
       tags: [cal1]
 
     selfcal-1a: 
@@ -282,15 +282,15 @@ eso137:
       tags: [never, cal1a]
       _use: lib.steps.cubical.base
       params:
-        out/mode: sc
-        sol/jones: [K]
-        sol/term-iters: 50
-        sol/min-bl: 100
-        k/type: f-slope
-        k/time-int: 1
-        k/freq-int: 0
-        k/diag-only: true
-        k/save-to: "{current.out/dir}.cc-out/Ksol"
+        out.mode: sc
+        sol.jones: [K]
+        sol.term-iters: 50
+        sol.min-bl: 100
+        k.type: f-slope
+        k.time-int: 1
+        k.freq-int: 0
+        k.diag-only: true
+        k.save-to: "{current.out.dir}.cc-out.Ksol"
 
     image-1:
       tags: [never, cal1]
@@ -357,16 +357,16 @@ eso137:
       tags: [never, cal2a, cal2a_solve]
       _use: lib.steps.cubical.base
       params:
-        out/mode: sc
-        weight/column: WEIGHT
-        sol/jones: [K]
-        sol/term-iters: 50
-        sol/min-bl: 100
-        k/type: f-slope
-        k/time-int: 1
-        k/freq-int: 0
-        k/diag-only: true
-        k/save-to: "{current.out/dir}.cc-out/Ksol"
+        out.mode: sc
+        weight.column: WEIGHT
+        sol.jones: [K]
+        sol.term-iters: 50
+        sol.min-bl: 100
+        k.type: f-slope
+        k.time-int: 1
+        k.freq-int: 0
+        k.diag-only: true
+        k.save-to: "{current.out.dir}.cc-out.Ksol"
 
     # image-2ams:
     #   tags: [never, cal2a]
@@ -441,21 +441,21 @@ eso137:
       tags: [never, cal3a, cal3a_solve]
       _use: lib.steps.cubical.base
       params:
-        out/mode: sc
-        weight/column: WEIGHT
-        sol/jones: [K,G]
-        sol/term-iters: 50,50,20
-        sol/min-bl: 100
-        k/type: f-slope
-        k/time-int: 1
-        k/freq-int: 0
-        k/diag-only: true
-        k/save-to: "{current.out/dir}.cc-out/Ksol"
-        g/type: complex-diag
-        g/time-int: 4
-        g/freq-int: 63
-        g/diag-only: true
-        g/save-to: "{current.out/dir}.cc-out/Gsol"
+        out.mode: sc
+        weight.column: WEIGHT
+        sol.jones: [K,G]
+        sol.term-iters: 50,50,20
+        sol.min-bl: 100
+        k.type: f-slope
+        k.time-int: 1
+        k.freq-int: 0
+        k.diag-only: true
+        k.save-to: "{current.out.dir}.cc-out.Ksol"
+        g.type: complex-diag
+        g.time-int: 4
+        g.freq-int: 63
+        g.diag-only: true
+        g.save-to: "{current.out.dir}.cc-out.Gsol"
 
     image-3amsr0m5_m20:
       tags: [never, cal3a, im3series]
@@ -480,21 +480,21 @@ eso137:
       tags: [never, cal4a, cal4a_solve]
       _use: lib.steps.cubical.base
       params:
-        out/mode: sc
-        weight/column: WEIGHT
-        sol/jones: [K,G]
-        sol/term-iters: 50,50,20
-        sol/min-bl: 100
-        k/type: f-slope
-        k/time-int: 1
-        k/freq-int: 0
-        k/diag-only: true
-        k/save-to: "{current.out/dir}.cc-out/Ksol"
-        g/type: complex-diag
-        g/time-int: 4
-        g/freq-int: 63
-        g/diag-only: true
-        g/save-to: "{current.out/dir}.cc-out/Gsol"
+        out.mode: sc
+        weight.column: WEIGHT
+        sol.jones: [K,G]
+        sol.term-iters: 50,50,20
+        sol.min-bl: 100
+        k.type: f-slope
+        k.time-int: 1
+        k.freq-int: 0
+        k.diag-only: true
+        k.save-to: "{current.out.dir}.cc-out.Ksol"
+        g.type: complex-diag
+        g.time-int: 4
+        g.freq-int: 63
+        g.diag-only: true
+        g.save-to: "{current.out.dir}.cc-out.Gsol"
 
     image-4amsr0m5_m20:
       tags: [never, cal4a, im4series]
@@ -511,16 +511,16 @@ eso137:
       tags: [never, cal4b, cal4b_solve]
       _use: lib.steps.quartical.base
       params:
-        input_model/recipe: MODEL_DATA
-        input_ms/select_uv_range: [0,0]
-        output/columns: =LIST('SELFCAL{info.suffix}_DATA')
-        solver/terms: [K,G]
-        solver/robust: True
-        solver/iter_recipe: [25,25,25,25]
-        solver/threads: 64
-        output/directory: "{recipe.dir_out}/qc-{info.suffix}"
-        dask/threads: 64
-        dask/scheduler: threads
+        input_model.recipe: MODEL_DATA
+        input_ms.select_uv_range: [0,0]
+        output.columns: =LIST('SELFCAL{info.suffix}_DATA')
+        solver.terms: [K,G]
+        solver.robust: True
+        solver.iter_recipe: [25,25,25,25]
+        solver.threads: 64
+        output.directory: "{recipe.dir_out}.qc-{info.suffix}"
+        dask.threads: 64
+        dask.scheduler: threads
 
     image-4bmsr0m5_m20:
       tags: [never, cal4b, im4series]

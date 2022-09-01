@@ -1,0 +1,293 @@
+_include:
+  - omstimelation/oms-cabs.yml
+
+
+# extra wsclean opts, must go into main stimela2 repo
+cabs:
+  wsclean:
+    image: ''
+    command: wsclean
+    inputs:
+      multiscale-scales: 
+        dtype: List[int]
+        policies:
+          repeat: ','
+      channel-range:
+        dtype: List[int]
+        policies:
+          repeat: list
+      deconvolution-channels:
+        dtype: int
+      temp-dir:
+        dtype: str
+
+  wsclean_pol:
+    image: ''
+    command: wsclean
+    inputs:
+      multiscale-scales: 
+        dtype: List[int]
+        policies:
+          repeat: ','
+      channel-range:
+        dtype: List[int]
+        policies:
+          repeat: ' '
+      deconvolution-channels:
+        dtype: int
+
+  cubical_gain_plots:
+    virtual_env: 
+
+# override default imaging settings from oms-cabs
+lib:
+  steps:
+    wsclean:
+      base:
+        params:
+          ms: '{recipe.ms}'
+          prefix: '{recipe.image-prefix}'
+          size: '{root.wsclean_size}'
+          scale: '{root.pixel_scale}asec'
+          nchan: =root.wsclean_nchan
+          channel-range: =LIST(root.chan0, root.chan1)
+          temp_dir: "{root.dirs.temp}"
+      image_ss:
+        _use: lib.steps.wsclean.image
+        params:
+          column: SELFCAL{info.suffix}_DATA
+          niter: 500000
+          auto_mask: 7
+          auto_threshold: 1
+          baseline_averaging: 12
+          deconvolution-channels: =root.wsclean_deconvolution_nchan
+          fit_spectral_pol: =root.wsclean_poly
+          no_update_model_required: true
+      image_ss_pol:
+        _use: lib.steps.wsclean.image_ss
+        cab: wsclean_pol
+        params:
+          join_polarizations: true
+          fit_spectral_pol: 
+          pol: IQ
+      image_ms:
+        _use: lib.steps.wsclean.image_ss
+        params:
+          # auto_mask: 10
+          # auto_threshold: 5
+          multiscale: true
+          multiscale-scales: =root.multiscale-scales
+      image_ms_pol:
+        _use: lib.steps.wsclean.image_ms
+        cab: wsclean_pol
+        params:
+          join_polarizations: true
+          fit_spectral_pol: 
+          pol: IQ
+
+      image_deep:
+        params:
+          niter: 150000
+          auto_threshold: 1
+          nmiter: 10
+          nchan: 24
+          deconvolution_channels: 6
+          fit_spectral_pol: 4
+          join_polarizations: false
+          baseline_averaging: 12
+          no_update_model_required: true
+    ddfacet:
+      base:
+        params:
+          Data-MS: '{recipe.ms}'
+          Output-Name: '{recipe.image-prefix}'
+          Data-ColName: CORRECTED_DD_DATA
+          Image-Cell: '{recipe.pixel_scale}'
+      ssd2:
+        params:
+          Mask-Auto: false
+    killms:
+      base:
+        params:
+          InCol: CORRECTED_DD_DATA
+    cubical:
+      base:
+        cab: cubical
+        params:
+          data.ms: '{recipe.ms}'
+          data.time-chunk: 4
+          data.freq-chunk: 0 
+          dist.ncpu: 64
+          model.list: MODEL_DATA
+          sel.chan: "{root.chan0}:{root.chan1}" 
+          out.dir: '{root.dir_out}.cc-{info.label}'
+          out.column: SELFCAL{info.suffix}_DATA
+          flags.auto-init: None
+          flags.apply: FLAG
+          flags.save: None
+          flags.save-legacy: apply
+          madmax.enable: true
+          madmax.residuals: true
+          madmax.threshold: 10
+          madmax.global-threshold: 12
+          # log.verbose: solver=2
+
+  recipes:
+    mask_series:
+      info: "Runs a series of masks at varying thresholds"
+      for_loop:
+        var: threshold
+        over: [14,16,18,20,22,24]
+      inputs:
+        restored_image: 
+          aliases: [mask.restored_image]
+        dilate:
+          aliases: [mask.dilate]
+        image-prefix: 
+          dtype: str
+          required: true
+      outputs:
+        mask-prefix:
+          dtype: str
+          implicit: '{recipe.image-prefix}-mask'
+      steps:
+        mask:
+          cab: breizorro
+          params:
+            threshold: =recipe.threshold
+            mask: '{recipe.image-prefix}-mask{recipe.threshold}.fits'
+
+    selfcal-cc-delay:
+      info: runs a basic step of delay selfcal (predict-solve-image)
+
+      inputs:
+        label:
+          dtype: str
+          info: label of this selfcal step, e.g. "1", "1p", etc.
+        ms: 
+          aliases: [(flagman).ms, (flagsummary).ms, (wsclean).ms, (cubical).data.ms, (quartical).input_ms.path]
+          info: MS name
+        flags:
+          restore: 
+            aliases: [restoreflags.name]
+            info: flagversion to restore to before starting. Set to none/empty to skip flag restore.
+            default: =root.init-flags
+            required: false
+          save:
+            aliases: [saveflags.name]
+            info: flagversion to save to after calibration. Set to none/empty to skip flag save.
+            default: 'selfcal_{current.label}'
+            required: false
+        predict:
+          prefix: 
+            aliases: [predict.prefix] 
+            info: prefix of image(s) from which to predict. Set to none to skip the predict
+            required: false
+          size:
+            aliases: [predict.size]
+            info: image size for model form which to predict 
+            default: =root.wsclean_size
+          scale:
+            aliases: [predict.scale]
+            info: pixel scale for model form which to predict 
+            default: '{root.pixel_scale}asec'
+          nchan: 
+            aliases: [predict.nchan]
+            info: number of channels for predict image(s)
+            default: =root.wsclean_nchan
+        image:
+          prefix:
+            aliases: [image.prefix]
+            info: name prefix for resulting image(s)
+            default: '{root.dir_out}/im-{current.label}/im{current.label}'
+            required: false
+          weight: 
+            aliases: [image.weight]
+            info: imaging weight
+            default: "briggs -0.5"
+          fits-mask: 
+            aliases: [image.fits_mask]
+            info: imaging mask. Set to none to omit
+          auto-mask: 
+            aliases: [image.auto_mask]
+            info: imaging auto-masking threshold, use as alternative to image-fits-mask
+            default: UNSET
+          threshold: 
+            aliases: [image.threshold]
+            info: imaging autothreshold
+            default: 3
+        skip:
+          calibrate:
+            dtype: bool
+            default: false
+            info: "skips the claibration step if set"
+      
+      steps:
+        restoreflags:
+          info: restores an original flag version before starting calibration
+          cab: flagman
+          params:
+            mode: restore
+          skip: =not IFSET(recipe.flags.restore)
+
+        predict:
+          _use: lib.steps.wsclean.predict
+          skip: =not IFSET(current.prefix)
+            
+        calibrate: 
+          info: invokes cubical on a single MS
+          _use: lib.steps.cubical.base
+          params:
+            out.column: 'SELFCAL{recipe.label}_DATA'
+            out.dir: '{root.dir_out}/cal-{recipe.label}.cc-out'
+            out.mode: sc
+            sol.jones: [K]
+            sol.term-iters: 50
+            sol.min-bl: 100
+            k.type: f-slope
+            k.time-int: 1
+            k.freq-int: 0
+            k.diag-only: true
+            k.max-prior-error: 0.3
+            k.max-post-error: 0.3
+            k.save-to: "{current.out.dir}/Ksol-{recipe.label}"
+          skip: =IFSET(recipe.skip.calibrate)
+
+        flagsummary:
+          info: reports flagging statistics
+          cab: flagsummary
+
+        saveflags:
+          info: saves flag version after calibration
+          cab: flagman
+          params:
+            mode: save
+          skip: =not IFSET(recipe.flags.save)
+
+        image:
+          _use: lib.steps.wsclean.image_ss
+          params:
+            column: =steps.calibrate.out.column
+          skip: =not IFSET(recipe.image.prefix)
+
+
+    selfcal-cc-phase:
+      _use: lib.recipes.selfcal-cc-delay
+      info: runs a basic step of phase selfcal (predict-solve-image)
+      _scrub: steps.calibrate.*
+
+      steps:
+        calibrate: 
+          info: invokes cubical on a single MS
+          _use: lib.steps.cubical.base
+          params:
+            out.column: 'SELFCAL{recipe.label}_DATA'
+            out.dir: '{root.dir_out}/cal-{recipe.label}.cc-out'
+            out.mode: sc
+            sol.jones: [G]
+            sol.term-iters: 50
+            sol.min-bl: 100
+            g.type: phase-diag
+            g.time-int: 1
+            g.freq-int: 0
+            g.save-to: "{current.out.dir}/Gsol-{recipe.label}"

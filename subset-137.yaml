@@ -74,6 +74,13 @@ lib:
           deconvolution-channels: =recipe.wsclean_deconvolution_nchan
           fit_spectral_pol: =recipe.wsclean_poly
           no_update_model_required: true
+      image_ss_pol:
+        _use: lib.steps.wsclean.image_ss
+        cab: wsclean_pol
+        params:
+          join_polarizations: true
+          fit_spectral_pol: 
+          pol: IQ
       image_ms:
         _use: lib.steps.wsclean.image_ss
         params:
@@ -290,24 +297,30 @@ eso137:
         k.time-int: 1
         k.freq-int: 0
         k.diag-only: true
-        k.save-to: "{current.out.dir}.cc-out.Ksol"
+        k.save-to: "{current.out.dir}.cc-out.Ksol1"
 
     image-1:
       tags: [never, cal1]
       _use: lib.steps.wsclean.image_ss
 
     image-1a:
-      tags: [never]
-      _use: lib.steps.wsclean.image_ss
+      tags: [never, cal1a]
+      _use: lib.steps.wsclean.image_ss_pol
+      params:
+        fits_mask: '{steps.mask-1ams.mask-prefix}20.fits'
+        column: SELFCAL1a_DATA
+        weight: "briggs -0.5"
+        auto_mask:
+        auto_threshold: 3
 
     image-1ams:
-      tags: [never, cal1a]
+      tags: [never]
       _use: lib.steps.wsclean.image_ms
       params:
         column: SELFCAL1a_DATA
 
     mask-1ams:
-      tags: [never, cal1a]
+      tags: [never]
       recipe:
         _use: lib.recipes.mask_series
       params:
@@ -385,7 +398,7 @@ eso137:
         auto_threshold: 3
 
     image-2amsr0m5_m20:
-      tags: [never, im2series]
+      tags: [never, im2series, cal2a]
       _use: lib.steps.wsclean.image_ms
       params:
         fits_mask: '{steps.mask-1ams.mask-prefix}20.fits'
@@ -443,19 +456,14 @@ eso137:
       params:
         out.mode: sc
         weight.column: WEIGHT
-        sol.jones: [K,G]
-        sol.term-iters: 50,50,20
+        sol.jones: [K]
+        sol.term-iters: 50
         sol.min-bl: 100
         k.type: f-slope
         k.time-int: 1
         k.freq-int: 0
         k.diag-only: true
         k.save-to: "{current.out.dir}.cc-out.Ksol"
-        g.type: complex-diag
-        g.time-int: 4
-        g.freq-int: 63
-        g.diag-only: true
-        g.save-to: "{current.out.dir}.cc-out.Gsol"
 
     image-3amsr0m5_m20:
       tags: [never, cal3a, im3series]
@@ -506,31 +514,31 @@ eso137:
         auto_mask:
         auto_threshold: 3
 
-    selfcal-4b: 
-      info: invokes cubical on a single MS
-      tags: [never, cal4b, cal4b_solve]
-      _use: lib.steps.quartical.base
-      params:
-        input_model.recipe: MODEL_DATA
-        input_ms.select_uv_range: [0,0]
-        output.columns: =LIST('SELFCAL{info.suffix}_DATA')
-        solver.terms: [K,G]
-        solver.robust: True
-        solver.iter_recipe: [25,25,25,25]
-        solver.threads: 64
-        output.directory: "{recipe.dir_out}.qc-{info.suffix}"
-        dask.threads: 64
-        dask.scheduler: threads
+    # selfcal-4b: 
+    #   info: invokes cubical on a single MS
+    #   tags: [never, cal4b, cal4b_solve]
+    #   _use: lib.steps.quartical.base
+    #   params:
+    #     input_model.recipe: MODEL_DATA
+    #     input_ms.select_uv_range: [0,0]
+    #     output.columns: =LIST('SELFCAL{info.suffix}_DATA')
+    #     solver.terms: [K,G]
+    #     solver.robust: True
+    #     solver.iter_recipe: [25,25,25,25]
+    #     solver.threads: 64
+    #     output.directory: "{recipe.dir_out}.qc-{info.suffix}"
+    #     dask.threads: 64
+    #     dask.scheduler: threads
 
-    image-4bmsr0m5_m20:
-      tags: [never, cal4b, im4series]
-      _use: lib.steps.wsclean.image_ms
-      params:
-        fits_mask: '{steps.mask-1ams.mask-prefix}20.fits'
-        column: SELFCAL4b_DATA
-        weight: "briggs -0.5"
-        auto_mask:
-        auto_threshold: 3
+    # image-4bmsr0m5_m20:
+    #   tags: [never, cal4b, im4series]
+    #   _use: lib.steps.wsclean.image_ms
+    #   params:
+    #     fits_mask: '{steps.mask-1ams.mask-prefix}20.fits'
+    #     column: SELFCAL4b_DATA
+    #     weight: "briggs -0.5"
+    #     auto_mask:
+    #     auto_threshold: 3
 
     # selfcal-1a: 
     #     info: invokes quartical on a single MS

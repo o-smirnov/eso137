@@ -1,0 +1,122 @@
+_include:
+  - lib-137.yaml
+
+
+## this augments the standard 'opts' config section to tweak logging settings
+opts:
+  log:
+    dir: logs/log-{config.run.datetime}
+    name: log-{info.fqname}
+    nest: 2
+    symlink: log
+
+eso137:
+  name: boom
+  info: "selfcal on ESO137"
+
+  assign:
+    dir_out: '{recipe.dirs.base}/{recipe.dirs.sub}'
+    image-prefix: '{recipe.dir_out}/im-{info.suffix}/im-{info.suffix}'
+    log.dir: '{recipe.dir_out}/logs/log-{config.run.datetime}'
+    dirs:
+      ms: ../msdir
+      temp: "~/tmp"
+      base: .
+
+  assign_based_on:
+    run.node:
+      hall:
+        dirs: 
+          temp: /scratch/{config.run.env.USER}/ESO137
+          base: /scratch/{config.run.env.USER}/ESO137
+    obs:
+      L1:
+        ms: "{recipe.dirs.ms}/1557347448_sdp_l0-ESO137_001-corr.ms"
+        dirs.sub: obs1lbss
+        band: L
+      L2:
+        ms: "{recipe.dirs.ms}/1557433849_sdp_l0-ESO137_001-corr.ms"
+        dirs.sub: obs2lbss
+        band: L
+    band:
+      L:
+        wsclean_size: 6100
+        pixel_scale: 0.8
+        wsclean_nchan: 16
+        wsclean_deconvolution_nchan: 4
+        wsclean_poly: 2
+
+  inputs:
+    obs:
+      default: L1
+      choices: [L1, L2]
+      info: "Selects observation, see labels above"
+    dir_out: 
+      dtype: str
+    ms:
+      aliases: [(quartical).input_ms.path, selfcal*.ms]
+    multiscale-scales: 
+      dtype: List[int]
+      default: [0,6,12,18,24,36,48,72]
+    chan0:
+      default: 525
+      dtype: int 
+    chan1:
+      default: 775
+      dtype: int
+    init-model:
+      prefix: 
+        default: init_model/im4-delay2-deep-eso117
+      nchan: 
+        dtype: int
+        default: 8
+      size: 
+        dtype: int
+        default: 6144
+      scale:
+        default: 1asec
+    init-flags: 
+      default: e137_flag__target_rfi_after
+    default-mask:
+      default: im1ams-mask20.fits
+
+  steps:
+    restoreflags:
+      info: restores an original flag version before starting calibration
+      cab: flagman
+      params:
+        mode: restore
+        name: =recipe.init-flags
+      skip: =not IFSET(recipe.init-flags)
+
+    image-0:
+      info: initial imaging step for DATA column
+      _use: lib.steps.wsclean.image_ms
+      params:
+        prefix: =recipe.image-prefix
+        column: DATA
+      skip: true
+
+    flagsummary:
+      info: reports flagging statistics
+      cab: flagsummary
+
+    selfcal-d1:
+      recipe: selfcal-cc-delay
+      params:
+        label: d1
+        predict:
+          prefix: =steps.image-0.prefix
+          # prefix: '{recipe.init-model.prefix}'
+          # nchan: '{recipe.init-model.nchan}'
+          # size: '{recipe.init-model.size}'
+          # scale: '{recipe.init-model.scale}'
+
+    selfcal-d2:
+      recipe: selfcal-cc-delay
+      params:
+        label: d2
+        predict:
+           prefix: =previous.image.prefix
+          
+

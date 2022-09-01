@@ -19,7 +19,7 @@ eso137:
     image-prefix: '{recipe.dir_out}/im-{info.suffix}/im-{info.suffix}'
     log.dir: '{recipe.dir_out}/logs/log-{config.run.datetime}'
     dirs:
-      ms: ../msdir
+      ms: msdir
       temp: "~/tmp"
       base: .
 

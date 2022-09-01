@@ -66,6 +66,7 @@ eso137:
       dtype: int
     init-model:
       prefix: 
+        info: "prefix of initial selfcal model, if this is to be used"
         default: init_model/im4-delay2-deep-eso117
       nchan: 
         dtype: int
@@ -77,8 +78,9 @@ eso137:
         default: 1asec
     init-flags: 
       default: e137_flag__target_rfi_after
-    default-mask:
-      default: im1ams-mask20.fits
+    # default-mask:
+    #   info: "default imaging mask, not currently used"
+    #   default: im1ams-mask20.fits
 
   steps:
     restoreflags:

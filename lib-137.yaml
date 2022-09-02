@@ -220,7 +220,7 @@ lib:
           calibrate:
             dtype: bool
             default: false
-            info: "skips the claibration step if set"
+            info: "skips the calibration step if set"
       
       steps:
         restoreflags:
@@ -256,6 +256,8 @@ lib:
         flagsummary:
           info: reports flagging statistics
           cab: flagsummary
+          params:
+            spw: =root.casa-spw
 
         saveflags:
           info: saves flag version after calibration

@@ -22,6 +22,8 @@ eso137:
       ms: msdir
       temp: "~/tmp"
       base: .
+    chan1x: =recipe.chan1 - 1  # inclusive end channel
+    casa-spw: "0:{recipe.chan0}~{recipe.chan1x}"  # CASA channel range
 
   assign_based_on:
     run.node:
@@ -102,11 +104,13 @@ eso137:
     flagsummary:
       info: reports flagging statistics
       cab: flagsummary
+      params:
+        spw: =recipe.casa-spw
 
     selfcal-d1:
       recipe: selfcal-cc-delay
       params:
-        label: d1
+        label: "{info.suffix}"
         predict:
           prefix: =steps.image-0.prefix
           # prefix: '{recipe.init-model.prefix}'
@@ -117,7 +121,7 @@ eso137:
     selfcal-d2:
       recipe: selfcal-cc-delay
       params:
-        label: d2
+        label: "{info.suffix}"
         predict:
            prefix: =previous.image.prefix
           

@@ -37,6 +37,7 @@ cabs:
         dtype: int
 
   cubical_gain_plots:
+    _contingent: .command
     virtual_env: 
 
 # override default imaging settings from oms-cabs

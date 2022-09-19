@@ -12,25 +12,133 @@ opts:
 
 eso137:
   name: boom
-  info: "selfcal on ESO137"
+  info: "generic selfcal recipe developed for ESO137"
 
+  ## recipe inputs
+  inputs:
+    obs:
+      default: L1
+      choices: [L1, L2]
+      info: "Selects observation, see assign_based_on section"
+    dir-out: 
+      dtype: str
+      info: "override output directory -- formed up automatically by default"
+    ms:
+      aliases: ['*.ms']
+      info: "overrides MS, which is otherwise selected based on 'obs'"
+      required: false
+    chan0:
+      default: 525
+      dtype: int 
+      info: "selects starting channel"
+    chan1:
+      default: 775
+      dtype: int
+      info: "selects ending channel (+1)"
+    ncpu:
+      default: 16
+      dtype: int
+      info: Number of CPU cores to use
+    # imaging settings
+    image:
+      _use: 
+        - lib.params.imaging.base
+        - lib.params.imaging.clean
+      _scrub: [prefix, niter, auto-mask, auto-threshold]  # these will be per-step
+      size: 
+        aliases: [selfcal-*.image.$, selfcal-*.predict.$, image-*.$]
+        required: false
+      scale: 
+        aliases: [selfcal-*.image.$, selfcal-*.predict.$, image-*.$]
+        required: false
+      nchan: 
+        aliases: [selfcal-*.image.$, image-*.$]
+        required: false
+      weight: 
+        aliases: [selfcal-*.$$, image-*.$]
+      fit-spectral-pol: 
+        aliases: [selfcal-*.$$, image-*.$]
+      fits-mask: 
+        aliases: [selfcal-*.$$, image-*.$]
+      deconvolution-channels:
+        aliases: [selfcal-*.$$, image-*.$]
+      niter: 
+        aliases: [selfcal-*.$$, image-*.$]
+      auto-mask:
+        aliases: [selfcal-*.$$]
+        default: 7
+      auto-threshold:
+        aliases: [selfcal-*.$$]
+        default: 1
+      multiscale:
+        dtype: bool
+        default: true
+        info: enables multiscale cleaning
+      multiscale-scales: 
+        dtype: List[int]
+        default: [0,6,12,18,24,36,48,72]
+        info: list of scales for multiscale cleaning
+      upsample-model-channels:
+        info: "if set, uses smops to smoothly upsample model images to this number of channels"
+        aliases: [selfcal-*.$$]
+    # an initial selfcal model can be specified (otherwise, run step 'image-0' below to make one)
+    init-model:
+      _use: 
+        - lib.params.imaging.base
+      enable:
+        info: "enables the use of an initial model (constructs from DATA otherwise)"
+        dtype: bool
+        default: false
+      prefix: 
+        info: "prefix of initial selfcal model"
+        default: init_model/im4-delay2-deep-eso117
+      nchan: 
+        info: "number of bands in initial selfcal model"
+        dtype: int
+        default: =current.image.nchan
+      size: 
+        info: "size of initial selfcal model"
+        dtype: int
+        default: =current.image.size
+      scale:
+        info: "pixel scale of initial selfcal model"
+        default: =current.image.scale
+    init-flags: 
+      info: name of initial flagversion, reverted to when we need a "clean" start
+
+  # setup some defaults
+  defaults:
+    init-flags: e137_flag__target_rfi_after
+
+    ## not currently used
+    # default-mask:
+    #   info: "default imaging mask, not currently used"
+    #   default: im1ams-mask20.fits
+
+  # assign some recipe-level variables
   assign:
-    dir_out: '{recipe.dirs.base}/{recipe.dirs.sub}'
-    image-prefix: '{recipe.dir_out}/im-{info.suffix}/im-{info.suffix}'
-    log.dir: '{recipe.dir_out}/logs/log-{config.run.datetime}'
+    dir-out: '{recipe.dirs.base}/{recipe.dirs.sub}'                     # output products go here
+    image-prefix: '{recipe.dir-out}/im-{info.suffix}/im-{info.suffix}'  # prefix for image names at each step
+    log.dir: '{recipe.dir-out}/logs/log-{config.run.datetime}'          # put logs into output dir
+    # some more directory assignments
     dirs:
-      ms: msdir
-      temp: "~/tmp"
-      base: .
-    chan1x: =recipe.chan1 - 1  # inclusive end channel
-    casa-spw: "0:{recipe.chan0}~{recipe.chan1x}"  # CASA channel range
+      ms: msdir       # MSs live here
+      temp: "~/tmp"   # temp files go here
+      base: .         # base project directory -- directory of recipe by default, but see below
 
+    _chan1x: =recipe.chan1 - 1       # end channel, inclusiv -- helper variable to form CASA spw
+    casa-spw: "0:{recipe.chan0}~{recipe._chan1x}"  # CASA spw parameter
+
+  # some condiitonal assignments
   assign_based_on:
+    # for nodes with an SSD scratch space, change default directory assignments
     run.node:
       hall:
         dirs: 
           temp: /scratch/{config.run.env.USER}/ESO137
           base: /scratch/{config.run.env.USER}/ESO137
+        ncpu: 64
+    # select stuff based on 'obs' input 
     obs:
       L1:
         ms: "{recipe.dirs.ms}/1557347448_sdp_l0-ESO137_001-corr.ms"
@@ -40,50 +148,18 @@ eso137:
         ms: "{recipe.dirs.ms}/1557433849_sdp_l0-ESO137_001-corr.ms"
         dirs.sub: obs2lbss
         band: L
+    # select some default imaging parameters based on band
     band:
       L:
-        wsclean_size: 6100
-        pixel_scale: 0.8
-        wsclean_nchan: 16
-        wsclean_deconvolution_nchan: 4
-        wsclean_poly: 2
-
-  inputs:
-    obs:
-      default: L1
-      choices: [L1, L2]
-      info: "Selects observation, see labels above"
-    dir_out: 
-      dtype: str
-    ms:
-      aliases: [(quartical).input_ms.path, selfcal*.ms]
-    multiscale-scales: 
-      dtype: List[int]
-      default: [0,6,12,18,24,36,48,72]
-    chan0:
-      default: 525
-      dtype: int 
-    chan1:
-      default: 775
-      dtype: int
-    init-model:
-      prefix: 
-        info: "prefix of initial selfcal model, if this is to be used"
-        default: init_model/im4-delay2-deep-eso117
-      nchan: 
-        dtype: int
-        default: 8
-      size: 
-        dtype: int
-        default: 6144
-      scale:
-        default: 1asec
-    init-flags: 
-      default: e137_flag__target_rfi_after
-    # default-mask:
-    #   info: "default imaging mask, not currently used"
-    #   default: im1ams-mask20.fits
-
+        image.size: 8192
+        image.scale: 0.8asec
+        image.nchan: 4
+        image.fit-spectral-pol: 2
+        image.weight: "briggs -0.5"
+        image.niter: 500000
+        image.upsample-model-channels: =recipe.chan1 - recipe.chan0
+        
+  # actual recipe steps
   steps:
     restoreflags:
       info: restores an original flag version before starting calibration
@@ -93,36 +169,57 @@ eso137:
         name: =recipe.init-flags
       skip: =not IFSET(recipe.init-flags)
 
-    image-0:
-      info: initial imaging step for DATA column
-      _use: lib.steps.wsclean.image_ms
-      params:
-        prefix: =recipe.image-prefix
-        column: DATA
-      skip: true
-
     flagsummary:
-      info: reports flagging statistics
+      info: reports initial flagging statistics
       cab: flagsummary
       params:
         spw: =recipe.casa-spw
 
+    image-0:
+      info: initial imaging step for DATA column
+      _use: lib.steps.wsclean.image
+      params:
+        prefix: =recipe.image-prefix
+        column: DATA
+        auto-threshold: 3
+        auto-mask: 7
+      # skip this step if an init model is specified
+      skip: =recipe.init-model.enable
+      # skip this step anyway unless run with -t init_model
+      tags: [never, init_model]
+
+    upsample-0:
+      cab: smops
+      params:
+        ms: =recipe.ms
+        ip: =steps.image-0.prefix
+        od: "{steps.image-0.prefix}-upsampled"
+        nthreads: =root.ncpu
+        co: =recipe.image.upsample-model-channels
+      skip: =not IFSET(recipe.image.upsample-model-channels)
+      tags: [never, init_model]
+
     selfcal-d1:
+      info: first round of delay selfcal
       recipe: selfcal-cc-delay
       params:
         label: "{info.suffix}"
         predict:
-          prefix: =steps.image-0.prefix
-          # prefix: '{recipe.init-model.prefix}'
-          # nchan: '{recipe.init-model.nchan}'
-          # size: '{recipe.init-model.size}'
-          # scale: '{recipe.init-model.scale}'
+          # use init selfcal model if set, otherwise use step-0
+          prefix: =IF(recipe.init-model.enable,recipe.init-model.prefix,
+                      IFSET(recipe.image.upsample-model-channels, steps.upsample-0.model-prefix, steps.image-0.prefix))
+          # if initial model is set, use these parameters, otherwise revert to defaults
+          nchan: =IF(recipe.init-model.enable, recipe.init-model.nchan, 
+                      IFSET(recipe.image.upsample-model-channels, SELF, steps.image-0.nchan))
+          size: =IF(recipe.init-model.enable, recipe.init-model.size, steps.image-0.size)
+          scale: =IF(recipe.init-model.enable, recipe.init-model.scale, steps.image-0.scale)
 
     selfcal-d2:
+      info: second round of delay selfcal
       recipe: selfcal-cc-delay
       params:
         label: "{info.suffix}"
         predict:
-           prefix: =previous.image.prefix
+           prefix: =previous.output-model-prefix
           
 

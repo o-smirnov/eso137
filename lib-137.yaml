@@ -239,8 +239,8 @@ lib:
       outputs:
         output-model-prefix:
           implicit: =IFSET(current.image.upsample-model-channels, 
-              "{current.image.prefix}-upsampled/" + BASENAME(current.image.prefix),
-              current.image.prefix)
+                            steps.upsample.model-prefix,
+                            current.image.prefix)
       
       steps:
         restoreflags:
@@ -299,7 +299,7 @@ lib:
             ms: =recipe.ms
             ip: =recipe.image.prefix
             nthreads: =root.ncpu
-            co: =recipe.image.upsample-model-channels
+            co: =IFSET(recipe.image.upsample-model-channels)
             od: "{recipe.image.prefix}-upsampled"
           skip: =not IFSET(recipe.image.upsample-model-channels) 
 

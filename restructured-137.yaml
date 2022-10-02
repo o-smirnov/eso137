@@ -162,7 +162,7 @@ eso137:
   # actual recipe steps
   steps:
     restoreflags:
-      info: restores an original flag version before starting calibration
+      info: restore an original flag version before starting calibration
       cab: flagman
       params:
         mode: restore
@@ -170,32 +170,31 @@ eso137:
       skip: =not IFSET(recipe.init-flags)
 
     flagsummary:
-      info: reports initial flagging statistics
+      info: report initial flagging statistics
       cab: flagsummary
       params:
         spw: =recipe.casa-spw
 
     image-0:
-      info: initial imaging step for DATA column
+      info: construct initial model image using the DATA column
       _use: lib.steps.wsclean.image
       params:
         prefix: =recipe.image-prefix
         column: DATA
         auto-threshold: 3
         auto-mask: 7
-      # skip this step if an init model is specified
       skip: =recipe.init-model.enable
-      # skip this step anyway unless run with -t init_model
       tags: [never, init_model]
 
     upsample-0:
+      info: upsamples model image to higher frequency resolution
       cab: smops
       params:
         ms: =recipe.ms
         ip: =steps.image-0.prefix
         od: "{steps.image-0.prefix}-upsampled"
         nthreads: =root.ncpu
-        co: =recipe.image.upsample-model-channels
+        co: =IFSET(recipe.image.upsample-model-channels)
       skip: =not IFSET(recipe.image.upsample-model-channels)
       tags: [never, init_model]
 

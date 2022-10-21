@@ -46,13 +46,13 @@ eso137:
         - lib.params.imaging.clean
       _scrub: [prefix, niter, auto-mask, auto-threshold]  # these will be per-step
       size: 
-        aliases: [selfcal-*.image.$, selfcal-*.predict.$, image-*.$]
+        aliases: [selfcal-*.$$, selfcal-*.predict.$, image-*.$]
         required: false
       scale: 
-        aliases: [selfcal-*.image.$, selfcal-*.predict.$, image-*.$]
+        aliases: [selfcal-*.$$, selfcal-*.predict.$, image-*.$]
         required: false
       nchan: 
-        aliases: [selfcal-*.image.$, image-*.$]
+        aliases: [selfcal-*.$$, image-*.$]
         required: false
       weight: 
         aliases: [selfcal-*.$$, image-*.$]

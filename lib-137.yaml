@@ -239,7 +239,7 @@ lib:
       outputs:
         output-model-prefix:
           implicit: =IFSET(current.image.upsample-model-channels, 
-                            steps.upsample.model-prefix,
+                            current.steps.upsample.model-prefix,
                             current.image.prefix)
       
       steps:
